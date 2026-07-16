@@ -65,15 +65,15 @@ input[type=file]{display:none;}
 .extract-block h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin:0 0 12px;}
 .swatch-row{display:flex;gap:10px;flex-wrap:wrap;}
 .swatch{
-  border:1.5px solid var(--line);border-radius:10px;padding:8px;width:88px;
+  border:1.5px solid var(--line);border-radius:10px;padding:8px;width:104px;
   display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface);
 }
 .swatch .chip{width:52px;height:52px;border-radius:8px;border:1px solid rgba(0,0,0,.08);}
 .swatch code{font-size:.68rem;color:var(--ink-muted);}
-.swatch .roles{display:flex;gap:4px;}
+.swatch .roles{display:flex;flex-direction:column;gap:4px;width:100%;}
 .role-btn{
-  font-size:.62rem;font-weight:700;padding:4px 6px;border-radius:6px;border:1px solid var(--line);
-  background:var(--surface);cursor:pointer;color:var(--ink-muted);
+  font-size:.64rem;font-weight:700;padding:5px 4px;border-radius:6px;border:1px solid var(--line);
+  background:var(--surface);cursor:pointer;color:var(--ink-muted);width:100%;white-space:nowrap;
 }
 .role-btn.active-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
 .role-btn.active-secondary{background:#F2B705;border-color:#F2B705;color:#3a2c00;}
@@ -296,12 +296,12 @@ import {
 
 // TODO: pega aquí el firebaseConfig de Configuración del proyecto > Tus apps > Web app
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCq-c3ndDviAHXQ3uQJrgJEGwBL22xJO4I",
-  authDomain: "gen-lang-client-0504182272.firebaseapp.com",
-  projectId: "gen-lang-client-0504182272",
-  storageBucket: "gen-lang-client-0504182272.firebasestorage.app",
-  messagingSenderId: "521798871169",
-  appId: "1:521798871169:web:f3a5039ddc63aa045a0580"
+  apiKey: "TU_API_KEY",
+  authDomain: "tu-proyecto.firebaseapp.com",
+  projectId: "tu-proyecto",
+  storageBucket: "tu-proyecto.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:xxxxxxxxxxxxxxxx"
 };
 const COLLECTION = "colegios_landing";
 const DATABASE_ID = "landing-colegios"; // base de datos separada, distinta de la (default) de cobranzas
