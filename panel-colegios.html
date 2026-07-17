@@ -79,6 +79,24 @@ input[type=file]{display:none;}
 .role-btn.active-secondary{background:#F2B705;border-color:#F2B705;color:#3a2c00;}
 .empty-hint{color:var(--ink-muted);font-size:.85rem;font-style:italic;}
 
+/* ---- tipografía ---- */
+.font-grid{display:flex;flex-direction:column;gap:8px;}
+.font-card{
+  border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .15s,background .15s;
+}
+.font-card:hover{border-color:var(--accent);}
+.font-card.active{border-color:var(--accent);background:#F8F8FF;}
+.font-card .fc-sample{font-size:1.15rem;line-height:1.2;}
+.font-card .fc-label{font-size:.7rem;color:var(--ink-muted);margin-top:3px;}
+.font-card .fc-check{
+  width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.font-card.active .fc-check{background:var(--accent);border-color:var(--accent);}
+.font-card.active .fc-check svg{display:block;}
+.font-card .fc-check svg{display:none;width:11px;height:11px;color:#fff;}
+
 /* ---- variantes calculadas ---- */
 .role-summary{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
 .role-token{
@@ -228,6 +246,11 @@ input[type=file]{display:none;}
       <div class="role-token"><div class="chip-sm" id="tokPrimaryDark"></div><div><span>Primario oscuro</span><code id="tokPrimaryDarkHex">—</code></div></div>
       <div class="role-token"><div class="chip-sm" id="tokSecondary"></div><div><span>Secundario</span><code id="tokSecondaryHex">—</code></div></div>
       <div class="role-token"><div class="chip-sm" id="tokSecondaryDark"></div><div><span>Secundario oscuro</span><code id="tokSecondaryDarkHex">—</code></div></div>
+    </div>
+
+    <div class="extract-block">
+      <h3>Tipografía del sitio</h3>
+      <div class="font-grid" id="fontGrid"></div>
     </div>
 
     <div class="field">
@@ -396,10 +419,67 @@ function extractPalette(img, maxColors = 6){
   return selected.map(c => ({ hex: rgbToHex(c.r,c.g,c.b), pct: c.pct }));
 }
 
+// redimensiona el escudo a un tamaño liviano antes de guardarlo en Firestore
+function resizeLogoDataUrl(img, maxDim = 240){
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/png');
+}
+
+/* =====================================================================
+   1.5) TIPOGRAFÍA — combinaciones curadas de Google Fonts, no texto libre
+   ===================================================================== */
+const FONT_PAIRINGS = [
+  { id:'fraunces-public', label:'Cálido clásico', sample:'Aa Colegio', display:"'Fraunces',serif", body:"'Public Sans',sans-serif",
+    url:'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;600&display=swap' },
+  { id:'playfair-inter', label:'Elegante tradicional', sample:'Aa Colegio', display:"'Playfair Display',serif", body:"'Inter',sans-serif",
+    url:'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600&display=swap' },
+  { id:'poppins', label:'Moderno amigable', sample:'Aa Colegio', display:"'Poppins',sans-serif", body:"'Poppins',sans-serif",
+    url:'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap' },
+  { id:'merriweather-source', label:'Institucional serio', sample:'Aa Colegio', display:"'Merriweather',serif", body:"'Source Sans 3',sans-serif",
+    url:'https://fonts.googleapis.com/css2?family=Merriweather:wght@700;900&family=Source+Sans+3:wght@400;600&display=swap' },
+  { id:'spacegrotesk-inter', label:'Técnico moderno', sample:'Aa Colegio', display:"'Space Grotesk',sans-serif", body:"'Inter',sans-serif",
+    url:'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;600&display=swap' }
+];
+let selectedFontId = FONT_PAIRINGS[0].id;
+
+// carga todas las fuentes de una vez, para poder previsualizarlas de verdad
+FONT_PAIRINGS.forEach(f=>{
+  const link = document.createElement('link');
+  link.rel = 'stylesheet'; link.href = f.url;
+  document.head.appendChild(link);
+});
+
+function renderFontGrid(){
+  const grid = document.getElementById('fontGrid');
+  grid.innerHTML = '';
+  FONT_PAIRINGS.forEach(f=>{
+    const card = document.createElement('div');
+    card.className = 'font-card' + (f.id === selectedFontId ? ' active' : '');
+    card.innerHTML = `
+      <div>
+        <div class="fc-sample" style="font-family:${f.display}">${f.sample}</div>
+        <div class="fc-label">${f.label}</div>
+      </div>
+      <div class="fc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+    card.addEventListener('click', ()=>{
+      selectedFontId = f.id;
+      renderFontGrid();
+      updatePreview();
+    });
+    grid.appendChild(card);
+  });
+}
+renderFontGrid();
+
 /* =====================================================================
    2) ESTADO Y UI
    ===================================================================== */
 let currentPalette = [];
+let currentLogoDataUrl = null;
 let roles = { primary:null, secondary:null };
 
 const fileInput = document.getElementById('fileInput');
@@ -426,6 +506,7 @@ fileInput.addEventListener('change', (e)=>{
       uploadLabel.textContent = file.name;
 
       currentPalette = extractPalette(img, 6);
+      currentLogoDataUrl = resizeLogoDataUrl(img, 240);
       roles = { primary:null, secondary:null };
       renderSwatches();
       // auto-asigna: el color más frecuente como primario, el segundo más distinto como secundario
@@ -498,12 +579,16 @@ function updatePreview(){
   const primary = roles.primary || '#1B3A5C';
   const secondary = roles.secondary || '#E8A33D';
   const pDark = darken(primary, 0.62);
+  const font = FONT_PAIRINGS.find(f => f.id === selectedFontId) || FONT_PAIRINGS[0];
   document.getElementById('mHeader').style.background = primary;
   document.getElementById('mHero').style.background = `linear-gradient(150deg, ${primary}, ${pDark})`;
   document.getElementById('mBtn').style.background = 'rgba(255,255,255,.14)';
   document.getElementById('mBtn').style.color = '#fff';
   document.getElementById('mCta').style.background = secondary;
   document.getElementById('mCta').style.color = pDark;
+  document.getElementById('mBrand').style.fontFamily = font.display;
+  document.querySelector('.mini-site .m-hero h4').style.fontFamily = font.display;
+  document.querySelector('.mini-site .m-hero p').style.fontFamily = font.body;
 }
 updatePreview();
 
@@ -611,10 +696,16 @@ async function deleteSchool(slug){
 }
 
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  if(currentLogoDataUrl && currentLogoDataUrl.length > 700000){
+    flashStatus('El escudo pesa demasiado incluso reducido. Prueba con una imagen más simple.', 'err');
+    return;
+  }
   const nombre = schoolNameInput.value.trim();
   const slug = slugify(nombre);
   const record = {
     nombre,
+    logo: currentLogoDataUrl,
+    fontPairingId: selectedFontId,
     whatsapp: document.getElementById('whatsapp').value.trim(),
     email: document.getElementById('email').value.trim(),
     web3formsKey: document.getElementById('web3formsKey').value.trim(),
