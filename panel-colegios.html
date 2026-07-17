@@ -244,8 +244,9 @@ input[type=file]{display:none;}
       <input type="email" id="email" placeholder="admision@colegio.edu.pe">
     </div>
     <div class="field">
-      <label for="formEndpoint">Endpoint del formulario (Formspree u otro)</label>
-      <input type="text" id="formEndpoint" placeholder="https://formspree.io/f/xxxxxxx">
+      <label for="web3formsKey">Access Key de Web3Forms</label>
+      <input type="text" id="web3formsKey" placeholder="ej. 8c4e6a1b-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      <div class="hint">Consíguela gratis en <span class="mono">web3forms.com</span> — no requiere crear cuenta.</div>
     </div>
 
     <div class="preview-wrap">
@@ -296,12 +297,12 @@ import {
 
 // TODO: pega aquí el firebaseConfig de Configuración del proyecto > Tus apps > Web app
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCq-c3ndDviAHXQ3uQJrgJEGwBL22xJO4I",
-  authDomain: "gen-lang-client-0504182272.firebaseapp.com",
-  projectId: "gen-lang-client-0504182272",
-  storageBucket: "gen-lang-client-0504182272.firebasestorage.app",
-  messagingSenderId: "521798871169",
-  appId: "1:521798871169:web:f3a5039ddc63aa045a0580"
+  apiKey: "TU_API_KEY",
+  authDomain: "tu-proyecto.firebaseapp.com",
+  projectId: "tu-proyecto",
+  storageBucket: "tu-proyecto.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:xxxxxxxxxxxxxxxx"
 };
 const COLLECTION = "colegios_landing";
 const DATABASE_ID = "landing-colegios"; // base de datos separada, distinta de la (default) de cobranzas
@@ -568,7 +569,7 @@ function renderSchoolList(items){
         <button class="btn btn-danger btn-sm" data-action="delete" data-slug="${s.slug}">Eliminar</button>
       </div>`;
     listEl.appendChild(el);
-    el.querySelector('[data-action="copy"]').addEventListener('click', ()=> copyConfig(s));
+    el.querySelector('[data-action="copy"]').addEventListener('click', (e)=> copyConfig(s, e.currentTarget));
     el.querySelector('[data-action="delete"]').addEventListener('click', ()=> deleteSchool(s.slug));
   });
 }
@@ -577,12 +578,12 @@ function escapeHtml(str){
   const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
 }
 
-function copyConfig(s){
+function copyConfig(s, btn){
   const snippet =
 `const CONFIG = {
   schoolName: "${s.nombre}",
   whatsappNumber: "${s.whatsapp || ''}",
-  formEndpoint: "${s.formEndpoint || 'https://formspree.io/f/REEMPLAZAR_CON_TU_ID'}",
+  web3formsKey: "${s.web3formsKey || 'TU_ACCESS_KEY_AQUI'}",
   colors: {
     primary: "${s.colors.primary}",
     primaryDark: "${s.colors.primaryDark}",
@@ -590,10 +591,14 @@ function copyConfig(s){
     secondaryDark: "${s.colors.secondaryDark}"
   }
 };`;
+  const original = btn.textContent;
   navigator.clipboard.writeText(snippet).then(()=>{
-    flashStatus('CONFIG copiado — pégalo en el index.html del colegio.', 'ok');
+    btn.textContent = '¡Copiado!';
+    btn.disabled = true;
+    setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 1800);
   }).catch(()=>{
-    flashStatus('No se pudo copiar automáticamente.', 'err');
+    btn.textContent = 'No se pudo copiar';
+    setTimeout(()=>{ btn.textContent = original; }, 1800);
   });
 }
 
@@ -613,7 +618,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     nombre,
     whatsapp: document.getElementById('whatsapp').value.trim(),
     email: document.getElementById('email').value.trim(),
-    formEndpoint: document.getElementById('formEndpoint').value.trim(),
+    web3formsKey: document.getElementById('web3formsKey').value.trim(),
     colors: {
       primary: roles.primary,
       primaryDark: darken(roles.primary, 0.62),
