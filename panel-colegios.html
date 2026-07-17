@@ -260,6 +260,21 @@ input[type=file]{display:none;}
     <div class="extract-block">
       <h3>Tipografía del sitio</h3>
       <div class="font-grid" id="fontGrid"></div>
+      <button type="button" class="link-btn-inline" id="toggleCustomFont" style="margin-top:10px;">Elegir otra fuente</button>
+
+      <div id="customFontBlock" style="display:none;margin-top:14px;">
+        <div class="field">
+          <label for="customFontDisplay">Fuente de títulos</label>
+          <input type="text" id="customFontDisplay" list="googleFontsList" placeholder="Ej. Bitter" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="customFontBody">Fuente de texto</label>
+          <input type="text" id="customFontBody" list="googleFontsList" placeholder="Ej. Nunito" autocomplete="off">
+        </div>
+        <div class="hint" style="margin-bottom:14px;">Solo fuentes de Google Fonts (gratis y de uso libre) — empieza a escribir y elige de la lista.</div>
+        <button type="button" class="link-btn-inline" id="backToPresetFont">Volver a las combinaciones sugeridas</button>
+      </div>
+      <datalist id="googleFontsList"></datalist>
     </div>
 
     <div class="field">
@@ -454,6 +469,69 @@ const FONT_PAIRINGS = [
     url:'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;600&display=swap' }
 ];
 let selectedFontId = FONT_PAIRINGS[0].id;
+let fontMode = 'preset'; // 'preset' | 'custom'
+
+// Lista curada de Google Fonts legibles para web (no las ~1800 completas,
+// solo las que funcionan bien en títulos/texto de un sitio institucional).
+const GOOGLE_FONTS_LIST = [
+  'Inter','Roboto','Open Sans','Lato','Montserrat','Poppins','Nunito','Source Sans 3','Work Sans','Rubik',
+  'Karla','Mulish','DM Sans','Manrope','Barlow','Raleway','Quicksand','Josefin Sans','Heebo','Assistant',
+  'IBM Plex Sans','Public Sans','Figtree','Outfit','Sora','Urbanist','Plus Jakarta Sans','Space Grotesk',
+  'Epilogue','Lexend','Red Hat Display','Archivo','Cabin','Hind','Titillium Web','PT Sans','Noto Sans',
+  'Oxygen','Fira Sans','Varela Round','Signika','Comfortaa',
+  'Playfair Display','Merriweather','Lora','Bitter','PT Serif','Crimson Text','Cormorant','Cormorant Garamond',
+  'Libre Baskerville','EB Garamond','Source Serif 4','Noto Serif','Domine','Spectral','Vollkorn','Alegreya',
+  'Zilla Slab','Frank Ruhl Libre','Rokkitt','Bree Serif','Arvo','Roboto Slab','Cardo','Old Standard TT',
+  'Marcellus','Cinzel','Fraunces',
+  'Abril Fatface','Bebas Neue','Anton','Oswald','Righteous','Pacifico','Yeseva One','Lobster','Caveat',
+  'Dancing Script','Great Vibes','Satisfy','Kaushan Script','Fjalla One','Passion One','Alfa Slab One',
+  'Baloo 2','Bungee','Staatliches','Archivo Black','Barlow Condensed','Teko',
+  'Space Mono','JetBrains Mono','IBM Plex Mono','Roboto Mono','Fira Code'
+];
+const fontsDatalist = document.getElementById('googleFontsList');
+GOOGLE_FONTS_LIST.forEach(name=>{
+  const opt = document.createElement('option');
+  opt.value = name;
+  fontsDatalist.appendChild(opt);
+});
+
+const loadedCustomFontLinks = new Set();
+function ensureGoogleFontLoaded(family){
+  if(!family || loadedCustomFontLinks.has(family)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${family.trim().replace(/\s+/g,'+')}:wght@400;600;700&display=swap`;
+  document.head.appendChild(link);
+  loadedCustomFontLinks.add(family);
+}
+
+const toggleCustomFontBtn = document.getElementById('toggleCustomFont');
+const customFontBlock = document.getElementById('customFontBlock');
+const fontGridEl = document.getElementById('fontGrid');
+const customFontDisplayInput = document.getElementById('customFontDisplay');
+const customFontBodyInput = document.getElementById('customFontBody');
+
+function setFontMode(mode){
+  fontMode = mode;
+  const isCustom = mode === 'custom';
+  fontGridEl.style.display = isCustom ? 'none' : 'flex';
+  toggleCustomFontBtn.style.display = isCustom ? 'none' : 'inline-block';
+  customFontBlock.style.display = isCustom ? 'block' : 'none';
+  updatePreview();
+}
+toggleCustomFontBtn.addEventListener('click', ()=> setFontMode('custom'));
+document.getElementById('backToPresetFont').addEventListener('click', ()=>{
+  customFontDisplayInput.value = '';
+  customFontBodyInput.value = '';
+  setFontMode('preset');
+});
+[customFontDisplayInput, customFontBodyInput].forEach(input=>{
+  input.addEventListener('change', ()=>{
+    ensureGoogleFontLoaded(input.value.trim());
+    updatePreview();
+  });
+});
+
 
 // carga todas las fuentes de una vez, para poder previsualizarlas de verdad
 FONT_PAIRINGS.forEach(f=>{
@@ -588,7 +666,9 @@ function updatePreview(){
   const primary = roles.primary || '#1B3A5C';
   const secondary = roles.secondary || '#E8A33D';
   const pDark = darken(primary, 0.62);
-  const font = FONT_PAIRINGS.find(f => f.id === selectedFontId) || FONT_PAIRINGS[0];
+  const font = fontMode === 'custom'
+    ? { display: `'${customFontDisplayInput.value.trim() || 'Fraunces'}',serif`, body: `'${customFontBodyInput.value.trim() || 'Public Sans'}',sans-serif` }
+    : (FONT_PAIRINGS.find(f => f.id === selectedFontId) || FONT_PAIRINGS[0]);
   document.getElementById('mHeader').style.background = primary;
   document.getElementById('mHero').style.background = `linear-gradient(150deg, ${primary}, ${pDark})`;
   document.getElementById('mBtn').style.background = 'rgba(255,255,255,.14)';
@@ -696,6 +776,15 @@ async function editSchool(s){
 
   selectedFontId = s.fontPairingId || FONT_PAIRINGS[0].id;
   renderFontGrid();
+  if(s.fontMode === 'custom' && (s.customFontDisplay || s.customFontBody)){
+    customFontDisplayInput.value = s.customFontDisplay || '';
+    customFontBodyInput.value = s.customFontBody || '';
+    ensureGoogleFontLoaded(s.customFontDisplay);
+    ensureGoogleFontLoaded(s.customFontBody);
+    setFontMode('custom');
+  } else {
+    setFontMode('preset');
+  }
 
   roles = { primary: s.colors.primary, secondary: s.colors.secondary };
 
@@ -733,6 +822,9 @@ function resetForm(){
 
   selectedFontId = FONT_PAIRINGS[0].id;
   renderFontGrid();
+  customFontDisplayInput.value = '';
+  customFontBodyInput.value = '';
+  setFontMode('preset');
 
   currentPalette = [];
   currentLogoDataUrl = null;
@@ -771,7 +863,10 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   const record = {
     nombre,
     logo: currentLogoDataUrl,
+    fontMode: fontMode,
     fontPairingId: selectedFontId,
+    customFontDisplay: fontMode === 'custom' ? customFontDisplayInput.value.trim() : '',
+    customFontBody: fontMode === 'custom' ? customFontBodyInput.value.trim() : '',
     whatsapp: document.getElementById('whatsapp').value.trim(),
     email: document.getElementById('email').value.trim(),
     web3formsKey: document.getElementById('web3formsKey').value.trim(),
