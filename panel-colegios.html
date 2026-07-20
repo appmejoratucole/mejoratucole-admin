@@ -466,6 +466,32 @@ input[type=file]{display:none;}
           <div class="field-sm"><label>Frase corta bajo el logo</label><input type="text" id="c_footerTagline" placeholder="Educación inicial, primaria y secundaria en Surco, Lima."></div>
         </div>
       </details>
+
+      <details>
+        <summary>Redes sociales</summary>
+        <div class="details-body">
+          <div class="hint" style="margin-bottom:8px;">Marca solo las que tenga el colegio y pega el link completo (ej. https://facebook.com/tucolegio).</div>
+
+          <label class="visibility-toggle" style="margin:0 -14px 0;"><input type="checkbox" id="v_socialFacebook"> Facebook</label>
+          <div class="field-sm"><input type="text" id="c_socialFacebook" placeholder="https://facebook.com/tucolegio"></div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_socialInstagram"> Instagram</label>
+          <div class="field-sm"><input type="text" id="c_socialInstagram" placeholder="https://instagram.com/tucolegio"></div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_socialTiktok"> TikTok</label>
+          <div class="field-sm"><input type="text" id="c_socialTiktok" placeholder="https://tiktok.com/@tucolegio"></div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_socialLinkedin"> LinkedIn</label>
+          <div class="field-sm"><input type="text" id="c_socialLinkedin" placeholder="https://linkedin.com/company/tucolegio"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Mensaje de WhatsApp</summary>
+        <div class="details-body">
+          <div class="field-sm"><label>Mensaje que se abre al tocar el botón de WhatsApp</label><textarea id="c_whatsappMessage" placeholder="Hola, quisiera información sobre las vacantes del colegio."></textarea></div>
+        </div>
+      </details>
     </div>
 
     <div class="preview-wrap">
@@ -749,9 +775,13 @@ const CONTENT_FIELDS = [
   'galleryEyebrow','galleryTitle','gallerySubtitle',
   'admissionEyebrow','admissionTitle','admissionSubtitle',
   'contactTitle','contactAddress','contactPhone','contactHours','mapQuery',
-  'footerTagline'
+  'footerTagline',
+  'socialFacebook','socialInstagram','socialTiktok','socialLinkedin',
+  'whatsappMessage'
 ];
 const VISIBILITY_FIELDS = ['trust','aboutStats','levelInicial','levelPrimaria','levelSecundaria','whyUs','why1','why2','why3','why4','gallery'];
+// estos, a diferencia de los demás, arrancan APAGADOS salvo que se marquen a propósito
+const OPTIN_VISIBILITY_FIELDS = ['socialFacebook','socialInstagram','socialTiktok','socialLinkedin'];
 
 function collectContent(){
   const content = {};
@@ -763,7 +793,7 @@ function collectContent(){
 }
 function collectVisibility(){
   const visible = {};
-  VISIBILITY_FIELDS.forEach(key=>{
+  [...VISIBILITY_FIELDS, ...OPTIN_VISIBILITY_FIELDS].forEach(key=>{
     const el = document.getElementById('v_'+key);
     if(el) visible[key] = el.checked;
   });
@@ -778,7 +808,11 @@ function fillContentForm(content){
 function fillVisibilityForm(visible){
   VISIBILITY_FIELDS.forEach(key=>{
     const el = document.getElementById('v_'+key);
-    if(el) el.checked = !(visible && visible[key] === false);
+    if(el) el.checked = !(visible && visible[key] === false); // por defecto prendido
+  });
+  OPTIN_VISIBILITY_FIELDS.forEach(key=>{
+    const el = document.getElementById('v_'+key);
+    if(el) el.checked = !!(visible && visible[key] === true); // por defecto apagado
   });
 }
 
