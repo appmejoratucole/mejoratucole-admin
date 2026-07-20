@@ -454,6 +454,8 @@ input[type=file]{display:none;}
           <div class="field-sm"><label>Dirección</label><input type="text" id="c_contactAddress" placeholder="Av. Los Educadores 456, Surco, Lima"></div>
           <div class="field-sm"><label>Teléfono</label><input type="text" id="c_contactPhone" placeholder="(01) 555-0123 · WhatsApp 987 654 321"></div>
           <div class="field-sm"><label>Horario de atención</label><input type="text" id="c_contactHours" placeholder="Lunes a viernes, 8:00 a.m. – 5:00 p.m."></div>
+          <div class="field-sm"><label>Texto para el mapa de Google Maps</label><input type="text" id="c_mapQuery" placeholder="Se usa la Dirección de arriba si dejas esto vacío"></div>
+          <div class="hint">Escribe la dirección tal como la buscarías en Google Maps (ej. "Colegio Beato, Surco, Lima"). Mientras más específico, mejor ubica el pin.</div>
           <div class="hint">El correo mostrado en esta sección es el que pusiste arriba en "Correo de admisión".</div>
         </div>
       </details>
@@ -746,7 +748,7 @@ const CONTENT_FIELDS = [
   'why1Title','why1Desc','why2Title','why2Desc','why3Title','why3Desc','why4Title','why4Desc',
   'galleryEyebrow','galleryTitle','gallerySubtitle',
   'admissionEyebrow','admissionTitle','admissionSubtitle',
-  'contactTitle','contactAddress','contactPhone','contactHours',
+  'contactTitle','contactAddress','contactPhone','contactHours','mapQuery',
   'footerTagline'
 ];
 const VISIBILITY_FIELDS = ['trust','aboutStats','levelInicial','levelPrimaria','levelSecundaria','whyUs','why1','why2','why3','why4','gallery'];
