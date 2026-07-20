@@ -335,9 +335,6 @@ input[type=file]{display:none;}
             <div class="field-sm"><label>Botón principal</label><input type="text" id="c_heroCtaPrimary" placeholder="Solicitar vacante"></div>
             <div class="field-sm"><label>Botón secundario</label><input type="text" id="c_heroCtaSecondary" placeholder="Conocer el colegio"></div>
           </div>
-          <div class="field-sm"><label>Título de la tarjeta de admisión</label><input type="text" id="c_heroCardTitle" placeholder="Admisión 2027 abierta"></div>
-          <div class="field-sm"><label>Texto de la tarjeta de admisión</label><textarea id="c_heroCardText" placeholder="Vacantes disponibles en Inicial, Primaria y Secundaria..."></textarea></div>
-          <div class="field-sm"><label>Botón de la tarjeta</label><input type="text" id="c_heroCardCta" placeholder="Ver requisitos"></div>
           <div class="field-row-2">
             <div class="field-sm"><label>Cifra 1</label><input type="text" id="c_heroStat1Value" placeholder="28"></div>
             <div class="field-sm"><label>Etiqueta 1</label><input type="text" id="c_heroStat1Label" placeholder="años de trayectoria"></div>
@@ -394,11 +391,14 @@ input[type=file]{display:none;}
 
       <details>
         <summary>Niveles educativos</summary>
-        <div class="details-body">
+        <div class="details-body" style="padding-top:0;">
+          <label class="visibility-toggle" style="margin:0 -14px 10px;"><input type="checkbox" id="v_levelInicial" checked> Ofrece Inicial</label>
+          <label class="visibility-toggle" style="margin:0 -14px 10px;"><input type="checkbox" id="v_levelPrimaria" checked> Ofrece Primaria</label>
+          <label class="visibility-toggle" style="margin:0 -14px 10px;"><input type="checkbox" id="v_levelSecundaria" checked> Ofrece Secundaria</label>
           <div class="field-sm"><label>Frase pequeña</label><input type="text" id="c_levelsEyebrow" placeholder="Oferta educativa"></div>
           <div class="field-sm"><label>Título</label><input type="text" id="c_levelsTitle" placeholder="Un solo colegio, tres etapas de crecimiento"></div>
           <div class="field-sm"><label>Subtítulo</label><textarea id="c_levelsSubtitle" placeholder="Cada nivel tiene un enfoque pedagógico propio..."></textarea></div>
-          <div class="hint">Las 3 tarjetas de Inicial/Primaria/Secundaria todavía no son editables — avísame si las necesitas así también.</div>
+          <div class="hint">El texto de cada tarjeta (edades, descripción) todavía no es editable — avísame si lo necesitas así también.</div>
         </div>
       </details>
 
@@ -408,6 +408,23 @@ input[type=file]{display:none;}
         <div class="details-body">
           <div class="field-sm"><label>Frase pequeña</label><input type="text" id="c_whyEyebrow" placeholder="Por qué elegirnos"></div>
           <div class="field-sm"><label>Título</label><input type="text" id="c_whyTitle" placeholder="Lo que nos hace diferentes"></div>
+          <div class="hint" style="margin:10px 0 4px;">Marca solo los atributos que quieras mostrar (de 1 a 4):</div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_why1" checked> Atributo 1</label>
+          <div class="field-sm"><input type="text" id="c_why1Title" placeholder="Docentes certificados"></div>
+          <div class="field-sm"><textarea id="c_why1Desc" placeholder="Equipo con formación continua y especialización por área."></textarea></div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_why2" checked> Atributo 2</label>
+          <div class="field-sm"><input type="text" id="c_why2Title" placeholder="Seguimiento personalizado"></div>
+          <div class="field-sm"><textarea id="c_why2Desc" placeholder="Reportes periódicos y tutoría individual para cada estudiante."></textarea></div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_why3" checked> Atributo 3</label>
+          <div class="field-sm"><input type="text" id="c_why3Title" placeholder="Comunicación constante"></div>
+          <div class="field-sm"><textarea id="c_why3Desc" placeholder="Canal directo por WhatsApp con dirección y tutoría."></textarea></div>
+
+          <label class="visibility-toggle" style="margin:10px -14px 0;"><input type="checkbox" id="v_why4" checked> Atributo 4</label>
+          <div class="field-sm"><input type="text" id="c_why4Title" placeholder="Infraestructura moderna"></div>
+          <div class="field-sm"><textarea id="c_why4Desc" placeholder="Laboratorios, biblioteca y espacios deportivos equipados."></textarea></div>
         </div>
       </details>
 
@@ -720,19 +737,19 @@ renderFontGrid();
    ===================================================================== */
 const CONTENT_FIELDS = [
   'heroEyebrow','heroTitle','heroSubtitle','heroCtaPrimary','heroCtaSecondary',
-  'heroCardTitle','heroCardText','heroCardCta',
   'heroStat1Value','heroStat1Label','heroStat2Value','heroStat2Label','heroStat3Value','heroStat3Label',
   'trust1','trust2','trust3',
   'aboutEyebrow','aboutTitle','aboutBody1','aboutBody2',
   'statCard1Value','statCard1Label','statCard2Value','statCard2Label','statCard3Value','statCard3Label',
   'levelsEyebrow','levelsTitle','levelsSubtitle',
   'whyEyebrow','whyTitle',
+  'why1Title','why1Desc','why2Title','why2Desc','why3Title','why3Desc','why4Title','why4Desc',
   'galleryEyebrow','galleryTitle','gallerySubtitle',
   'admissionEyebrow','admissionTitle','admissionSubtitle',
   'contactTitle','contactAddress','contactPhone','contactHours',
   'footerTagline'
 ];
-const VISIBILITY_FIELDS = ['trust','aboutStats','whyUs','gallery'];
+const VISIBILITY_FIELDS = ['trust','aboutStats','levelInicial','levelPrimaria','levelSecundaria','whyUs','why1','why2','why3','why4','gallery'];
 
 function collectContent(){
   const content = {};
