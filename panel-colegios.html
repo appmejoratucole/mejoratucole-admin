@@ -247,6 +247,33 @@ input[type=file]{display:none;}
   </div>
 </header>
 
+<div class="layout" style="grid-template-columns:1fr;margin-bottom:0;">
+  <div class="card">
+    <h2>Carga masiva (para campaña de emailing)</h2>
+    <p class="sub">Sube tu Excel/Google Sheets con columnas <b>nombre</b>, <b>correo</b>, <b>teléfono</b> y <b>dirección</b> (en cualquier orden — el nombre de la columna es lo único que importa). Se crea una página de muestra por cada colegio, con monograma de iniciales y una paleta bonita asignada sola, más un link único listo para tu herramienta de email marketing.</p>
+
+    <div class="field">
+      <label for="bulkFileInput">Archivo (.xlsx, .xls o .csv)</label>
+      <input type="file" id="bulkFileInput" accept=".xlsx,.xls,.csv">
+    </div>
+    <div class="field-row-2">
+      <div class="field">
+        <label for="bulkBaseUrl">URL base del sitio</label>
+        <input type="text" id="bulkBaseUrl" value="https://appmejoratucole.github.io/mejoratucole_website_template/">
+      </div>
+      <div class="field">
+        <label for="bulkWeb3formsKey">Access Key de Web3Forms (compartida para los demos)</label>
+        <input type="text" id="bulkWeb3formsKey" placeholder="para que TE avise si alguien llena un formulario de demo">
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn" id="bulkProcessBtn">Procesar y crear colegios de prueba</button>
+      <button class="btn btn-ghost" id="bulkDownloadBtn" style="display:none;">Descargar CSV con links</button>
+    </div>
+    <p class="status-msg" id="bulkStatus" style="margin-top:10px;min-height:1em;"></p>
+  </div>
+</div>
+
 <div class="layout">
 
   <!-- ================= FORMULARIO ================= -->
@@ -537,8 +564,9 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, deleteDoc, getDocs, query, orderBy
+  getFirestore, collection, doc, setDoc, deleteDoc, getDocs, query, orderBy, writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { read, utils } from "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCq-c3ndDviAHXQ3uQJrgJEGwBL22xJO4I",
@@ -1164,6 +1192,150 @@ function flashStatus(text, kind){
   statusMsg.className = 'status-msg ' + kind;
   setTimeout(()=>{ statusMsg.textContent=''; statusMsg.className='status-msg'; }, 4000);
 }
+
+/* =====================================================================
+   4) CARGA MASIVA — para la campaña de emailing. Lee un Excel/CSV,
+   crea una página de muestra por colegio (monograma + paleta curada,
+   nunca escudos reales) y genera un CSV con los links personalizados.
+   ===================================================================== */
+const BULK_PALETTES = [
+  { primary:'#1B3A5C', secondary:'#E8A33D' }, // navy / dorado
+  { primary:'#245A45', secondary:'#D9663B' }, // verde / terracota
+  { primary:'#5B2A86', secondary:'#3FB6A8' }, // morado / turquesa
+  { primary:'#0F3D5C', secondary:'#F2C14E' }, // azul petróleo / mostaza
+  { primary:'#7A1F2B', secondary:'#D4A017' }, // vino / dorado
+  { primary:'#0E6E6E', secondary:'#FF6B5B' }, // teal / coral
+  { primary:'#2E3A87', secondary:'#F0A830' }, // índigo / ámbar
+  { primary:'#1F4D3D', secondary:'#C77B44' }  // bosque / cobre
+];
+
+function normalizeHeader(h){
+  return String(h || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+function detectColumns(headerRow){
+  const map = {};
+  headerRow.forEach((h, i)=>{
+    const n = normalizeHeader(h);
+    if(map.nombre === undefined && n.includes('nombre')) map.nombre = i;
+    else if(map.correo === undefined && (n.includes('correo') || n.includes('email') || n.includes('mail'))) map.correo = i;
+    else if(map.telefono === undefined && (n.includes('telefono') || n.includes('celular') || n.includes('whatsapp'))) map.telefono = i;
+    else if(map.direccion === undefined && n.includes('direccion')) map.direccion = i;
+  });
+  return map;
+}
+
+let bulkResultRows = [];
+
+document.getElementById('bulkProcessBtn').addEventListener('click', async ()=>{
+  const bulkStatus = document.getElementById('bulkStatus');
+  const bulkBtn = document.getElementById('bulkProcessBtn');
+  const file = document.getElementById('bulkFileInput').files[0];
+  const baseUrl = document.getElementById('bulkBaseUrl').value.trim().replace(/\/$/, '');
+  const sharedKey = document.getElementById('bulkWeb3formsKey').value.trim();
+
+  if(!file){ bulkStatus.textContent = 'Selecciona un archivo primero.'; bulkStatus.className='status-msg err'; return; }
+  if(!baseUrl){ bulkStatus.textContent = 'Falta la URL base del sitio.'; bulkStatus.className='status-msg err'; return; }
+
+  bulkBtn.disabled = true;
+  bulkStatus.className = 'status-msg';
+  bulkStatus.textContent = 'Leyendo el archivo…';
+
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = read(buf);
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = utils.sheet_to_json(sheet, { header: 1, blankrows: false });
+    const cols = detectColumns(rows[0]);
+
+    if(cols.nombre === undefined){
+      bulkStatus.textContent = 'No encontré una columna de "nombre" en el archivo. Revisa los encabezados.';
+      bulkStatus.className = 'status-msg err';
+      bulkBtn.disabled = false;
+      return;
+    }
+
+    bulkStatus.textContent = 'Revisando colegios ya existentes…';
+    const existingSnap = await getDocs(collection(db, COLLECTION));
+    const usedSlugs = new Set(existingSnap.docs.map(d => d.id));
+
+    const dataRows = rows.slice(1).filter(r => r[cols.nombre]);
+    bulkResultRows = [];
+    let batch = writeBatch(db);
+    let opsInBatch = 0;
+    let total = 0;
+
+    for(let i = 0; i < dataRows.length; i++){
+      const row = dataRows[i];
+      const nombre = String(row[cols.nombre]).trim();
+      if(!nombre) continue;
+
+      const baseSlug = slugify(nombre);
+      let uniqueSlug = baseSlug, n = 2;
+      while(usedSlugs.has(uniqueSlug)){ uniqueSlug = `${baseSlug}-${n}`; n++; }
+      usedSlugs.add(uniqueSlug);
+
+      const correo = cols.correo !== undefined ? String(row[cols.correo] || '').trim() : '';
+      const telefono = cols.telefono !== undefined ? String(row[cols.telefono] || '').trim() : '';
+      const direccion = cols.direccion !== undefined ? String(row[cols.direccion] || '').trim() : '';
+      const palette = BULK_PALETTES[i % BULK_PALETTES.length];
+
+      const record = {
+        nombre,
+        logo: null,
+        fontMode: 'preset',
+        fontPairingId: FONT_PAIRINGS[0].id,
+        whatsapp: telefono,
+        email: correo,
+        web3formsKey: sharedKey,
+        content: direccion ? { contactAddress: direccion } : {},
+        visible: {},
+        colors: {
+          primary: palette.primary,
+          primaryDark: darken(palette.primary, 0.62),
+          secondary: palette.secondary,
+          secondaryDark: darken(palette.secondary, 0.8)
+        },
+        updatedAt: Date.now(),
+        isDemo: true
+      };
+
+      batch.set(doc(db, COLLECTION, uniqueSlug), record);
+      opsInBatch++;
+      total++;
+      bulkResultRows.push({ nombre, correo, slug: uniqueSlug, url: `${baseUrl}/?colegio=${uniqueSlug}` });
+
+      if(opsInBatch >= 450){
+        bulkStatus.textContent = `Guardando… (${total} de ${dataRows.length})`;
+        await batch.commit();
+        batch = writeBatch(db);
+        opsInBatch = 0;
+      }
+    }
+    if(opsInBatch > 0) await batch.commit();
+
+    bulkStatus.textContent = `Listo: se crearon ${total} páginas de muestra.`;
+    bulkStatus.className = 'status-msg ok';
+    document.getElementById('bulkDownloadBtn').style.display = 'inline-flex';
+    loadSchools();
+  }catch(e){
+    bulkStatus.textContent = 'Ocurrió un error leyendo o guardando el archivo. Revisa el formato de las columnas.';
+    bulkStatus.className = 'status-msg err';
+  }finally{
+    bulkBtn.disabled = false;
+  }
+});
+
+document.getElementById('bulkDownloadBtn').addEventListener('click', ()=>{
+  const esc = s => `"${String(s || '').replace(/"/g, '""')}"`;
+  const header = 'nombre,correo,url_demo\n';
+  const body = bulkResultRows.map(r => `${esc(r.nombre)},${esc(r.correo)},${esc(r.url)}`).join('\n');
+  const blob = new Blob([header + body], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'colegios_demo_links.csv';
+  link.click();
+});
 
 </script>
 </body>
